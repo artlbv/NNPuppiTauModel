@@ -32,8 +32,20 @@ bool check(bool ok, const char* name) {
 }  // namespace
 
 int main() {
-    // ModelLoader::~ModelLoader() dlclose()s the .so, so it must outlive
-    // the model object it produced (whose vtable lives inside that .so).
+    // `loader` MUST be a named local that outlives `model`, not a temporary
+    // (e.g. NOT `auto model = ModelLoader("...").load_model();`). ModelLoader's
+    // destructor unconditionally dlclose()s the .so, and the Model object
+    // load_model() returns has its vtable -- and the destroy_model function
+    // pointer captured in the shared_ptr's deleter -- living inside that .so's
+    // mapped memory. A temporary ModelLoader is destroyed at the end of the
+    // full expression, right after load_model() returns, so the .so is
+    // unloaded while `model` is still "alive". This doesn't crash right away:
+    // the pages can stay mapped/valid for a while after dlclose, so a naive
+    // smoke test can print PASS and only segfault later, nondeterministically,
+    // on predict() or even later still when the shared_ptr's deleter finally
+    // runs -- making it look unrelated to model loading. Keeping `loader` as
+    // a named local here means it isn't destroyed (and doesn't dlclose) until
+    // after `model` is, in main()'s normal reverse-order local cleanup.
     hls4mlEmulator::ModelLoader loader("NNPuppiTauModel_v1");
     std::shared_ptr<hls4mlEmulator::Model> model;
     try {
