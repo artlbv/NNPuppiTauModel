@@ -7,11 +7,12 @@ HLS_ROOT := ../../hls
 HLS4ML_INCLUDE := $(EMULATOR_EXTRAS)/include/hls4ml
 INCLUDES := -I$(HLS4ML_INCLUDE) -I$(AP_TYPES) -I$(HLS_ROOT)/include
 LD_FLAGS := -L$(EMULATOR_EXTRAS)/lib64 -lemulator_interface
+EMULATOR_EXTRAS_LIB := $(EMULATOR_EXTRAS)/lib64
 ALL_VERSIONS:=NNPuppiTauModel_v1/NNPuppiTauModel_v1.so
 
 
 .DEFAULT_GOAL := all
-.PHONY: all clean install
+.PHONY: all clean install test
 
 all: $(ALL_VERSIONS)
 	@cp $(ALL_VERSIONS) ./
@@ -24,6 +25,9 @@ install: all
 
 %.so:
 	$(MAKE) -C $(@D) INCLUDES="$(INCLUDES)" LD_FLAGS="$(LD_FLAGS)" CXXFLAGS="$(CXXFLAGS)"
+
+test:
+	$(MAKE) -C NNPuppiTauModel_v1 test INCLUDES="$(INCLUDES)" LD_FLAGS="$(LD_FLAGS)" CXXFLAGS="$(CXXFLAGS)" EMULATOR_EXTRAS_LIB="$(EMULATOR_EXTRAS_LIB)"
 
 clean:
 	rm NNPuppiTauModel_*.so
